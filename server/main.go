@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 
 	"github.com/jhenriquem/user-system-api/database"
@@ -21,8 +22,10 @@ func main() {
 	}
 
 	// Middleares
-	routes.Router.Use(middleware.JsonContentTypeMiddleware)
-	routes.Router.Use(middleware.LoggingMiddleware)
+	routes.Router.Use(mux.CORSMethodMiddleware(routes.Router))
+
+	routes.Router.Use(middleware.JsonContentType)
+	routes.Router.Use(middleware.Logging)
 
 	// Routes List
 	routes.InitRoutes()

@@ -1,31 +1,28 @@
 package routes
 
 import (
-	"net/http"
-
 	"github.com/gorilla/mux"
 	"github.com/jhenriquem/user-system-api/controllers"
+	"github.com/jhenriquem/user-system-api/middleware"
 )
 
 var Router *mux.Router = mux.NewRouter()
 
 var path map[string]string = map[string]string{
-	"register":       "/users",
-	"authentication": "/users/auth",
+	"register":       "/api/users",
+	"authentication": "/api/users/auth",
 
-	"getUser":        "/users/{id}",
-	"updateUserData": "/users/{id}",
-	"deleteUser":     "/users/{id}",
+	"user": "/api/user/",
 }
 
 func InitRoutes() {
 	Router.HandleFunc(path["authentication"], controllers.AuthUserHandler).Methods("GET")
-
-	Router.HandleFunc(path["getUser"], controllers.GetUserHandler).Methods("GET")
-
 	Router.HandleFunc(path["register"], controllers.RegisterUserHandler).Methods("POST")
 
-	Router.HandleFunc(path["updateUserData"], func(w http.ResponseWriter, r *http.Request) {}).Methods("PUT")
+	userRoutes := Router.PathPrefix(path["user"]).Subrouter()
+	userRoutes.Use(middleware.TokenAuthentication)
 
-	Router.HandleFunc(path["deleteUser"], controllers.DeleteUserHandler).Methods("DELETE")
+	userRoutes.HandleFunc("/", controllers.GetUserHandler).Methods("GET")
+	userRoutes.HandleFunc("/", controllers.UpdateUserHandler).Methods("PUT")
+	userRoutes.HandleFunc("/", controllers.DeleteUserHandler).Methods("DELETE")
 }

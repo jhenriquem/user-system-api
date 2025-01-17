@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -25,8 +26,6 @@ type Claims struct {
 func AuthUserHandler(w http.ResponseWriter, r *http.Request) {
 	var user types.AuthUser
 
-	json.NewDecoder(r.Body).Decode(&user)
-
 	// Verificação básica de dados
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		http.Error(w, "Invalid data", http.StatusBadRequest)
@@ -42,7 +41,7 @@ func AuthUserHandler(w http.ResponseWriter, r *http.Request) {
 	var hashPassword string
 	var userID int
 
-	err := database.DB.QueryRow(database.ActionsDB["getCredentials"]).Scan(&userID, &hashPassword)
+	err := database.DB.QueryRow(database.ActionsDB["find_by_email"], user.Email).Scan(&userID, &hashPassword)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "Invalid email or password", http.StatusUnauthorized)
@@ -68,8 +67,9 @@ func AuthUserHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(os.Getenv("JWT_SECRET"))
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(os.Getenv("JWT_SECRET")))
 	if err != nil {
+		log.Println(err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

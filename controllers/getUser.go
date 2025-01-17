@@ -5,42 +5,31 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gorilla/mux"
-
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/jhenriquem/user-system-api/database"
 	"github.com/jhenriquem/user-system-api/types"
 )
 
 func GetUserHandler(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	rows, err := database.DB.Query(database.ActionsDB["getOne"], params["id"])
+	claims := r.Context().Value("claims").(jwt.MapClaims)
+	userID := claims["user_id"]
+
+	user := types.User{}
+
+	// Recuperação no banco de dados
+	err := database.DB.QueryRow(database.ActionsDB["getOne"], userID).Scan(&user.ID, &user.Name, &user.Email)
 	if err != nil {
 		log.Printf("Database query error: %v", err) // Log do erro
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	defer rows.Close()
-
-	users := []types.User{}
-
-	for rows.Next() {
-
-		var u types.User
-
-		if err := rows.Scan(&u.ID, &u.Name, &u.Email); err != nil {
-			log.Printf("Row scan error: %v", err) // Log do erro
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-		users = append(users, u)
+	// Corpo da responsta
+	response := map[string]any{
+		"status": "Get user data sucessfully",
+		"data":   user,
 	}
 
-	if err := rows.Err(); err != nil {
-		log.Printf("Rows iteration error: %v", err) // Log do erro
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	json.NewEncoder(w).Encode(users)
+	// Resposta
+	json.NewEncoder(w).Encode(response)
 }

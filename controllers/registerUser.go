@@ -33,6 +33,13 @@ func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Verifica se o usuário já existe
+	_, err = database.DB.Query(database.ActionsDB["find_by_email"], user.Email)
+	if err == nil {
+		http.Error(w, "User already exists", http.StatusConflict)
+		return
+	}
+
 	// Criação no banco de dados
 	err = database.DB.QueryRow(database.ActionsDB["create"], user.Name, user.Email, hashedPassword).Scan(&user.ID)
 	if err != nil {
@@ -43,7 +50,7 @@ func RegisterUserHandler(w http.ResponseWriter, r *http.Request) {
 	// Resposta bem sucedia
 	response := map[string]string{
 		"status": "User created successfully",
-		"id":     fmt.Sprint(user.ID),
+		"userId": fmt.Sprint(user.ID),
 	}
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
